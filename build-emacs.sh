@@ -25,8 +25,26 @@ function is_set()
     fi
 }
 
+function echo_set()
+{
+    # $1 MUST be a string too.
+    if [ -z "${1}" ]
+    then
+        echo "${0##*/}: is_echo: variable name passed is nil!"
+        return 2
+    fi
+
+    declare status=$(is_set "${1}")
+    if [ -n ${status} ]
+    then
+        echo "${1} is defined."
+    else
+        echo "${1} is empty.${2:-''}"
+    fi
+}
+
 # Le option parsing.
-while getopts :ghv OPT; do
+while getopts :cgphv OPT; do
     case $OPT in
         c|+c)
             CLEAR=1 # Clear before configuring.
@@ -34,10 +52,14 @@ while getopts :ghv OPT; do
         g|+g)
             GIT_PULL=1 # Pull from git.
             ;;
+        p|+p)
+            EMACS_DIST=1 # Package EMACS.
+            ;;
         h|+h)
             # Forgive me for this.
             echo -e "${0##*/} usage:"
             echo -e "\t[-+]h: Prints this message."
+            echo -e "\t[-+]p: Package EMACS after build."
             echo -e "\t[-+]v: Prints the version of this script."
             echo -e "\t[-+]g: Pull a fresher version of the repository, if the source is from"
             echo -e "\t       a repository."
@@ -69,9 +91,9 @@ done
 PATH=${PATH%":"}
 
 # now cd to the place specified by EMACS_SRC, or to "emacs" if EMACS_SRC is nil.
-if [ -d "${EMACS_SRC}" ]
+if [ -d "${EMACS}" ]
 then
-    cd ${EMACS_SRC}
+    cd ${EMACS}
 elif [ -d "emacs" ]
 then
      cd "emacs"
@@ -107,4 +129,13 @@ else
 fi
 
 # Then make, TARGET shall be used if it is defined, the same for JOBS.
-make -j${JOBS:-$(nproc)} ${TARGET:-""}
+make -j${JOBS:-$(nproc)} ${TARGET}
+
+# If -p is set, package the EMACS, by default will package it inside a tar
+# file.
+declare status=$(is_set "EMACS_DIST")
+if [[ ${status} -eq 0]]
+then
+    EMACS=${EMACS:-${PWD}}
+    ./make-dist ${DIST_FLAGS:-"--tar"}
+fi
