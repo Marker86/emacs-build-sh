@@ -161,4 +161,5 @@ declare status=$(is_set "EMACS_DIST")
 if [[ ${status} -eq 0 ]]
 then
     EMACS=${EMACS:-${PWD}}
-    ./make-dist ${DIST_FLAGS:-"--tar"}fi
+    ./make-dist ${DIST_FLAGS:-"--tar"}
+fi
