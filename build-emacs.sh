@@ -3,6 +3,9 @@
 # Predefine some configuration flags.
 declare CONF_FLAGS="--with-native-compilation --with-wide-int"
 
+declare -r BOLD="\e[1;37m"
+declare -r BLEACH="\e[0m"
+
 # Catch errors.
 set -e
 
@@ -25,6 +28,8 @@ function is_set()
     fi
 }
 
+# Same as above but designed to be informative, opposed of a necessary
+# component.
 function echo_set()
 {
     # $1 MUST be a string too.
@@ -34,12 +39,23 @@ function echo_set()
         return 2
     fi
 
-    declare status=$(is_set "${1}")
-    if [ -n ${status} ]
+    # Carbon-copy of above.
+    if [ -n "${!1}" ]
     then
-        echo "${1} is defined."
+        echo -e "${BOLD}${1}${BLEACH} is set."
     else
-        echo "${1} is empty.${2:-''}"
+        echo -e "${BOLD}${1}${BLEACH} is empty${2:-.}"
+    fi
+}
+
+function bold_display()
+{
+    # Doesn't matters as much if there is no variable.
+    if [ -n "${1}" ]
+    then
+        echo -e "${BOLD}${1}${BLEACH}"
+    else
+        true
     fi
 }
 
@@ -77,6 +93,14 @@ while getopts :cgphv OPT; do
 done
 shift $(( OPTIND - 1 ))
 OPTIND=1
+
+# Print actions taken for undefined variables.
+echo_set "EMACS" ", EMACS source path was not specified, will look in the PWD."
+echo_set "TARGET" ", will build the default target."
+echo_set "GIT_PULL" ", will not pull from upstream, building current source."
+echo_set "CLEAR" ", will not clear the build directory from leftovers of previous actions."
+echo_set "EMACS_DIST" ", will not package EMACS after build."
+echo_set "CFLAGS" ", will use default build flags."
 
 # Set the path so it doesn't conflicts with my ada GNAT community edition installation
 # so it should be wiped then set again.
@@ -120,13 +144,13 @@ then
 fi
 unset -v status
 
-# Then configure with the specified flags.
-if [ -f "configure" ]; then
-    ./configure ${CONF_FLAGS:-""}
-else
+# If configure is not found run autogen.sh.
+if ! [ -f "configure" ]; then
     ./autogen.sh
-    ./configure ${CONF_FLAGS:-""}
 fi
+
+# Configure the Makefile.
+./configure ${CONF_FLAGS:-""}
 
 # Then make, TARGET shall be used if it is defined, the same for JOBS.
 make -j${JOBS:-$(nproc)} ${TARGET}
@@ -137,5 +161,4 @@ declare status=$(is_set "EMACS_DIST")
 if [[ ${status} -eq 0]]
 then
     EMACS=${EMACS:-${PWD}}
-    ./make-dist ${DIST_FLAGS:-"--tar"}
-fi
+    ./make-dist ${DIST_FLAGS:-"--tar"}fi
