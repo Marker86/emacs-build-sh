@@ -15,15 +15,18 @@ function is_set()
     # $1 MUST be a string.
     if [ -z "${1}" ]
     then
-        echo "${0##*/}: is_set: variable name passed is nil!"
+        #        echo "${0##*/}: is_set: variable name passed is nil!"
+        echo 2
         return 2
     fi
 
     # Check the variable is set, or has a value, same thing really.
     if [ -n "${!1}" ]
     then
+        echo 0
         return 0
     else
+        echo 1
         return 1
     fi
 }
@@ -83,11 +86,11 @@ while getopts :cgphv OPT; do
             exit 0
             ;;
         v|+v)
-            echo -e "${0##*/} version 0.2"
+            echo -e "${0##*/} version 0.3"
             exit 0
             ;;
         *)
-            echo "usage: ${0##*/} [+-ghv] [--] ARGS..."
+            echo "usage: ${0##*/} [+-cgphv] [--] ARGS..."
             exit 2
     esac
 done
@@ -101,6 +104,10 @@ echo_set "GIT_PULL" ", will not pull from upstream, building current source."
 echo_set "CLEAR" ", will not clear the build directory from leftovers of previous actions."
 echo_set "EMACS_DIST" ", will not package EMACS after build."
 echo_set "CFLAGS" ", will use default build flags."
+
+# Give time to read.
+echo -e "\nThe script shall continue shortly..."
+sleep 2
 
 # Set the path so it doesn't conflicts with my ada GNAT community edition installation
 # so it should be wiped then set again.
@@ -129,7 +136,7 @@ fi
 
 # Pull from git if it is found (if one is using this option, it should be a guarantee)
 # but first check the value itself is set.
-declare status=$(is_set "GIT_PULL")
+declare status="$(is_set "GIT_PULL")"
 if [[ ${status} -eq 0 ]]
 then
     git pull || echo "${0##*/}: git process returned a non-zero status code."
@@ -137,7 +144,7 @@ fi
 unset -v status # Being precautious.
 
 # Make clear, if a makefile is found.
-declare status=$(is_set "CLEAR")
+declare status="$(is_set "CLEAR")"
 if [[ ${status} -eq 0 && -f "Makefile" ]]
 then
     make clean
@@ -153,11 +160,11 @@ fi
 ./configure ${CONF_FLAGS:-""}
 
 # Then make, TARGET shall be used if it is defined, the same for JOBS.
-make -j${JOBS:-$(nproc)} ${TARGET}
+make -j"${JOBS:-$(nproc)}" ${TARGET}
 
 # If -p is set, package the EMACS, by default will package it inside a tar
 # file.
-declare status=$(is_set "EMACS_DIST")
+declare status="$(is_set "EMACS_DIST")"
 if [[ ${status} -eq 0 ]]
 then
     EMACS=${EMACS:-${PWD}}
